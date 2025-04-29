@@ -266,5 +266,106 @@ impl C4 {
     let ch = self.current_char();
 
     //Parse identifiers
+    if ch.is_alphabetic() || ch=='_'{
+      let start = self.p;
+      let mut hash: i32 = ch as i32;
+      self.p +=1;
+
+      //Collect identifiers characters
+      while self.p < self.source.len() {
+        let ch = self.current_char();
+        if ch.is_alphabetic() || ch=='_'{
+          hash = hash.wrapping_mul(147).wrapping_add(ch as i32);
+          self.p +=1;
+        }else {
+          break;
+        }
+
+        //Calculating Hash
+        hash = (hash<<6).wrapping_add((self.p - start) as i32);
+
+        let name = &self.source[start..self.p];
+        if let Some(idx) = self.find_symbol(hash, name) {
+          self.token = self.symbols[idx].token;
+          self.id = idx;
+        } else {
+          self.id = self.symbols.len();
+          self.symbols.push(Symbol {
+            token: TokenType::Id as i32,
+            hash,
+            name: name.to_string(),
+            class: 0,
+            type_: 0,
+            value: 0,
+            h_class: 0,
+            h_type: 0,
+            h_val: 0,
+          });
+          self.token = TokenType::Id as i32;
+        }
+
+        println("Parsed identifier: '{}', token = {}, id={}, name, self.token, self.id");
+        return;
+      }
+
+      //Parse numbers
+      if ch.is_digit(10) {
+        let is_zero = ch == '0';
+        self.token_val = (ch as u8 - b'0') as Int;
+        self.p +=1;
+
+        if is_zero && self.p < self.source.len() {
+          let next_ch = self.current_char();
+
+          if next_ch == 'x' || next_ch == 'X' {
+            self.p += 1;
+            self.token_val = 0;
+            while self.p < self.source.len() {
+              let ch = self.current_char();
+              if ch.is_digit(16) {
+                let digit_val = if ch.is_digit(10) {
+                  ch as u8 - b'0'
+                } else if ch >= 'a' && ch <= 'f' {
+                  (ch as u8 - b'a') + 10
+                } else {
+                  (ch as u8 - b'A') + 10
+                };
+                self.token_val = self.token_val * 16 + digit_val as Int;
+                self.p += 1;
+              } else {
+                break;
+              }
+            }
+          }
+          else if next_ch.is_digit(8) {
+            while self.p < self.source.len(){
+              let ch = self.current_char();
+              if ch.is_digit(8) {
+                self.token_val = self.token_val * 8 + (ch as u8 - b'0') as Int;
+                self.p += 1;
+              } else {
+                break;
+              }
+            }
+          }
+        }
+        // Handle decimal numbers
+        else if !is_zero {
+          while self.p < self.source.len() {
+            let ch = self.current_char();
+            if ch.is_digit(10) {
+              self.token_val = self.token_val * 10 + (ch as u8 - b'0') as Int;
+              self.p += 1;
+            } else {
+              break;
+            }
+          }
+        }
+        self.token = TokenType::Num as i32;
+        return;
+      }
+
+      //Handle string and character literals
+    }
   }
 }
