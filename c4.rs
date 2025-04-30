@@ -366,6 +366,43 @@ impl C4 {
       }
 
       //Handle string and character literals
+      if ch == '"' || ch == '\'' {
+        let string_type = ch;
+        let data_start = self.data_index;
+        self.p += 1;
+        
+        while self.p < self.source.len() && self.current_char() != string_type {
+          let mut val = self.current_char() as i32;
+          self.p += 1;
+          if val == '\\' as i32 && self.p < self.source.len() {
+            val = self.current_char() as i32;
+            self.p += 1;
+            
+            if val == 'n' as i32 {
+              val = '\n' as i32;
+            }
+          }
+          
+          if string_type == '"' {
+            self.data[self.data_index] = val as u8;
+            self.data_index += 1;
+          }
+        }
+        
+        if self.p < self.source.len() {
+          self.p += 1;
+        }
+        if string_type == '"' {
+          self.token_val = data_start as Int;
+          // Align data pointer
+          self.data_index = (self.data_index + std::mem::size_of::<Int>() - 1) & !(std::mem::size_of::<Int>() - 1);
+        } else {
+          self.token = TokenType::Num as i32;
+        }
+        return;
+      }
+
+      // Handle operators and other tokens
     }
   }
 }
