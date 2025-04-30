@@ -534,4 +534,32 @@ impl C4 {
       }
     }
   }
+
+  // Emit an instruction
+  fn emit(&mut self, op: OpCode) {
+    self.le += 1;
+    self.e[self.le] = op as Int;
+  }
+
+  // Emit an instruction with an operand
+  fn emit_with_operand(&mut self, op: OpCode, operand: Int) {
+    self.emit(op);
+    self.le += 1;
+    self.e[self.le] = operand;
+  }
+
+  // Expression parsing 
+  fn expr(&mut self, level: i32) -> Result<(), String> {
+    // Save the current type before parsing expressions
+    let save_type = self.type_;
+    let mut t: i32;
+    
+    if self.token == 0 {
+      return Err(format!("{}: unexpected end of file in expression", self.line));
+    }
+
+    // Parse primary expressions
+    
+  }
+  
 }
