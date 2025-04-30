@@ -90,7 +90,7 @@ struct C4 {
   symbols: Vec<Symbol>,
   token: i32,
   token_val: Int,
-  #[allow(deaad_code)]
+  #[allow(dead_code)]
   type_: i32,
   loc: Int,
   line: i32,
@@ -224,7 +224,7 @@ impl C4 {
   }
 
   fn find_symbol(&self, hash: i32, name: &str) -> Option<usize> {
-    for (i, sym) in self.symbol.iter().enumerate() {
+    for (i, sym) in self.symbols.iter().enumerate() {
       if sym.hash == hash && sym.name == name {
         return Some(i);
       }
@@ -240,11 +240,12 @@ impl C4 {
       let ch = self.current_char();
 
       if ch == '\n' {
-        self.line += 1
+        self.line += 1;
         if self.src {
-          //Print source line and assembly
-          let line_end = self.source[self.lp..self.p].find('\n').map_or(self.source, |pos| self.lp + pos + 1);
-          print!("{}: {}", self.line-1, &self.source[self.lp..line_end]);
+          // Print source line and assembly
+          let line_end = self.source[self.lp..self.p].find('\n')
+            .map_or(self.p, |pos| self.lp + pos + 1);
+          print!("{}: {}", self.line - 1, &self.source[self.lp..line_end]);
         }
         self.lp = self.p +1;
         self.p += 1;
@@ -277,132 +278,131 @@ impl C4 {
         if ch.is_alphabetic() || ch=='_'{
           hash = hash.wrapping_mul(147).wrapping_add(ch as i32);
           self.p +=1;
-        }else {
+        } else {
           break;
         }
-
-        //Calculating Hash
-        hash = (hash<<6).wrapping_add((self.p - start) as i32);
-
-        let name = &self.source[start..self.p];
-        if let Some(idx) = self.find_symbol(hash, name) {
-          self.token = self.symbols[idx].token;
-          self.id = idx;
-        } else {
-          self.id = self.symbols.len();
-          self.symbols.push(Symbol {
-            token: TokenType::Id as i32,
-            hash,
-            name: name.to_string(),
-            class: 0,
-            type_: 0,
-            value: 0,
-            h_class: 0,
-            h_type: 0,
-            h_val: 0,
-          });
-          self.token = TokenType::Id as i32;
-        }
-
-        println("Parsed identifier: '{}', token = {}, id={}, name, self.token, self.id");
-        return;
       }
-
-      //Parse numbers
-      if ch.is_digit(10) {
-        let is_zero = ch == '0';
-        self.token_val = (ch as u8 - b'0') as Int;
-        self.p +=1;
-
-        if is_zero && self.p < self.source.len() {
-          let next_ch = self.current_char();
-
-          if next_ch == 'x' || next_ch == 'X' {
-            self.p += 1;
-            self.token_val = 0;
-            while self.p < self.source.len() {
-              let ch = self.current_char();
-              if ch.is_digit(16) {
-                let digit_val = if ch.is_digit(10) {
-                  ch as u8 - b'0'
-                } else if ch >= 'a' && ch <= 'f' {
-                  (ch as u8 - b'a') + 10
-                } else {
-                  (ch as u8 - b'A') + 10
-                };
-                self.token_val = self.token_val * 16 + digit_val as Int;
-                self.p += 1;
-              } else {
-                break;
-              }
-            }
-          }
-          else if next_ch.is_digit(8) {
-            while self.p < self.source.len(){
-              let ch = self.current_char();
-              if ch.is_digit(8) {
-                self.token_val = self.token_val * 8 + (ch as u8 - b'0') as Int;
-                self.p += 1;
-              } else {
-                break;
-              }
-            }
-          }
-        }
-        // Handle decimal numbers
-        else if !is_zero {
+      
+      //Calculating Hash
+      hash = (hash<<6).wrapping_add((self.p - start) as i32);
+      let name = &self.source[start..self.p];
+      if let Some(idx) = self.find_symbol(hash, name) {
+        self.token = self.symbols[idx].token;
+        self.id = idx;
+      } else {
+        self.id = self.symbols.len();
+        self.symbols.push(Symbol {
+          token: TokenType::Id as i32,
+          hash,
+          name: name.to_string(),
+          class: 0,
+          type_: 0,
+          value: 0,
+          h_class: 0,
+          h_type: 0,
+          h_val: 0,
+        });
+        self.token = TokenType::Id as i32;
+      }
+      
+      println!("Parsed identifier: '{}', token = {}, id={}", name, self.token, self.id");
+      return;
+    }
+    
+    //Parse numbers
+    if ch.is_digit(10) {
+      let is_zero = ch == '0';
+      self.token_val = (ch as u8 - b'0') as Int;
+      self.p +=1;
+      
+      if is_zero && self.p < self.source.len() {
+        let next_ch = self.current_char();
+        
+        if next_ch == 'x' || next_ch == 'X' {
+          self.p += 1;
+          self.token_val = 0;
           while self.p < self.source.len() {
             let ch = self.current_char();
-            if ch.is_digit(10) {
-              self.token_val = self.token_val * 10 + (ch as u8 - b'0') as Int;
+            if ch.is_digit(16) {
+              let digit_val = if ch.is_digit(10) {
+                ch as u8 - b'0'
+              } else if ch >= 'a' && ch <= 'f' {
+                (ch as u8 - b'a') + 10
+              } else {
+                (ch as u8 - b'A') + 10
+              };
+              self.token_val = self.token_val * 16 + digit_val as Int;
               self.p += 1;
             } else {
               break;
             }
           }
         }
-        self.token = TokenType::Num as i32;
-        return;
-      }
-
-      //Handle string and character literals
-      if ch == '"' || ch == '\'' {
-        let string_type = ch;
-        let data_start = self.data_index;
-        self.p += 1;
-        
-        while self.p < self.source.len() && self.current_char() != string_type {
-          let mut val = self.current_char() as i32;
-          self.p += 1;
-          if val == '\\' as i32 && self.p < self.source.len() {
-            val = self.current_char() as i32;
-            self.p += 1;
-            
-            if val == 'n' as i32 {
-              val = '\n' as i32;
+        else if next_ch.is_digit(8) {
+          while self.p < self.source.len(){
+            let ch = self.current_char();
+            if ch.is_digit(8) {
+              self.token_val = self.token_val * 8 + (ch as u8 - b'0') as Int;
+              self.p += 1;
+            } else {
+              break;
             }
           }
-          
-          if string_type == '"' {
-            self.data[self.data_index] = val as u8;
-            self.data_index += 1;
+        }
+      }
+      // Handle decimal numbers
+      else if !is_zero {
+        while self.p < self.source.len() {
+          let ch = self.current_char();
+          if ch.is_digit(10) {
+            self.token_val = self.token_val * 10 + (ch as u8 - b'0') as Int;
+            self.p += 1;
+          } else {
+            break;
+          }
+        }
+      }
+      self.token = TokenType::Num as i32;
+      return;
+    }
+    
+    //Handle string and character literals
+    if ch == '"' || ch == '\'' {
+      let string_type = ch;
+      let data_start = self.data_index;
+      self.p += 1;
+      
+      while self.p < self.source.len() && self.current_char() != string_type {
+        let mut val = self.current_char() as i32;
+        self.p += 1;
+        if val == '\\' as i32 && self.p < self.source.len() {
+          val = self.current_char() as i32;
+          self.p += 1;
+          if val == 'n' as i32 {
+            val = '\n' as i32;
           }
         }
         
-        if self.p < self.source.len() {
-          self.p += 1;
-        }
         if string_type == '"' {
-          self.token_val = data_start as Int;
-          // Align data pointer
-          self.data_index = (self.data_index + std::mem::size_of::<Int>() - 1) & !(std::mem::size_of::<Int>() - 1);
-        } else {
-          self.token = TokenType::Num as i32;
+          self.data[self.data_index] = val as u8;
+          self.data_index += 1;
         }
-        return;
       }
-
-      // Handle operators and other tokens
+      
+      if self.p < self.source.len() {
+        self.p += 1;
+      }
+      
+      if string_type == '"' {
+        self.token_val = data_start as Int;
+        // Align data pointer
+        self.data_index = (self.data_index + std::mem::size_of::<Int>() - 1) & !(std::mem::size_of::<Int>() - 1);
+      } else {
+        self.token = TokenType::Num as i32;
+      }
+      return;
     }
-  }
+    
+    // Handle operators and other tokens
+    }
 }
