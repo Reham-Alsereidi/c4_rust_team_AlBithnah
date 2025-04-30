@@ -559,7 +559,528 @@ impl C4 {
     }
 
     // Parse primary expressions
-    
+    if self.token == TokenType::Num as i32 {
+      self.emit_with_operand(OpCode::IMM, self.token_val);
+      self.next();
+      self.type_ = Type::INT as i32;
+    }
+    else if self.token == '"' as i32 {
+      self.emit_with_operand(OpCode::IMM, self.token_val);
+      self.next();
+      while self.token == '"' as i32 {
+        self.next();
+      }
+      self.data_index = (self.data_index + std::mem::size_of::<Int>() - 1) & !(std::mem::size_of::<Int>() - 1);
+      self.type_ = Type::PTR as i32;
+    }
+    else if self.token == TokenType::Sizeof as i32 {
+      self.next();
+      if self.token == '(' as i32 {
+        self.next();
+      } else {
+        return Err(format!("{}: open paren expected in sizeof", self.line));
+      }
+      self.type_ = Type::INT as i32;
+      if self.token == TokenType::Int as i32 {
+        self.next();
+      } else if self.token == TokenType::Char as i32 {
+        self.next();
+        self.type_ = Type::CHAR as i32;
+      }
+      while self.token == TokenType::Mul as i32 {
+        self.next();
+        self.type_ += Type::PTR as i32;
+      }
+      if self.token == ')' as i32 {
+        self.next();
+      } else {
+        return Err(format!("{}: close paren expected in sizeof", self.line));
+      }
+      let size_val = if self.type_ == Type::CHAR as i32 { 1 } else { std::mem::size_of::<Int>() as Int };
+      self.emit_with_operand(OpCode::IMM, size_val);
+      self.type_ = Type::INT as i32;
+    }
+    else if self.token == TokenType::Id as i32 {
+      let id_idx = self.id;
+      self.next();
+      if self.token == '(' as i32 {
+        self.next();
+        let mut arg_count = 0;
+        while self.token != ')' as i32 {
+          self.expr(TokenType::Assign as i32)?;
+          self.emit(OpCode::PSH);
+          arg_count += 1;
+          if self.token == ',' as i32 {
+            self.next();
+          }
+        }
+        self.next();
+        let sym = &self.symbols[id_idx];
+        let class = sym.class;
+        let value = sym.value;
+        let type_ = sym.type_;
+        if class == TokenType::Sys as i32 {
+          self.emit_with_operand(OpCode::IMM, value);
+        } else if class == TokenType::Fun as i32 {
+          self.emit_with_operand(OpCode::JSR, value);
+        } else {
+          return Err(format!("{}: bad function call", self.line));
+        }
+        if arg_count > 0 {
+          self.emit_with_operand(OpCode::ADJ, arg_count);
+        }
+        self.type_ = type_;
+      }
+      else if self.symbols[id_idx].class == TokenType::Num as i32 {
+        self.emit_with_operand(OpCode::IMM, self.symbols[id_idx].value);
+        self.type_ = Type::INT as i32;
+      }
+      else {
+        let class = self.symbols[id_idx].class;
+        let value = self.symbols[id_idx].value;
+        let var_type = self.symbols[id_idx].type_;
+        if class == TokenType::Loc as i32 {
+          self.emit_with_operand(OpCode::LEA, self.loc - value);
+        } else if class == TokenType::Glo as i32 {
+          self.emit_with_operand(OpCode::IMM, value);
+        } else {
+          return Err(format!("{}: undefined variable", self.line));
+        }
+        self.type_ = var_type;
+        // Load the value
+        if self.type_ == Type::CHAR as i32 {
+          self.emit(OpCode::LC);
+        } else {
+          self.emit(OpCode::LI);
+        }
+      }
+    }
+    else if self.token == '(' as i32 {
+      self.next();
+      if self.token == TokenType::Int as i32 || self.token == TokenType::Char as i32 {
+        // Type cast
+        t = if self.token == TokenType::Int as i32 {
+          Type::INT as i32
+        } else {
+          Type::CHAR as i32
+        };
+        self.next();
+        while self.token == TokenType::Mul as i32 {
+          self.next();
+          t += Type::PTR as i32;
+        }
+        if self.token == ')' as i32 {
+          self.next();
+        } else {
+          return Err(format!("{}: bad cast", self.line));
+        }
+        self.expr(TokenType::Inc as i32)?;
+        self.type_ = t;
+      }
+      else {
+        self.expr(TokenType::Assign as i32)?;
+        if self.token == ')' as i32 {
+          self.next();
+        } else {
+          return Err(format!("{}: close paren expected", self.line));
+        }
+      }
+    }
+    else if self.token == TokenType::Mul as i32 {
+      self.next();
+      self.expr(TokenType::Inc as i32)?;
+      if self.type_ >= Type::PTR as i32 {
+        self.type_ -= Type::PTR as i32;
+      } else {
+        return Err(format!("{}: bad dereference", self.line));
+      }
+      if self.type_ == Type::CHAR as i32 {
+        self.emit(OpCode::LC);
+      } else {
+        self.emit(OpCode::LI);
+      }
+    }
+    else if self.token == TokenType::And as i32 {
+      self.next();
+      self.expr(TokenType::Inc as i32)?;
+      // If it's already a load, just remove it
+      if self.e[self.le] == OpCode::LC as Int || self.e[self.le] == OpCode::LI as Int {
+        self.le -= 1;
+      } else {
+        return Err(format!("{}: bad address-of", self.line));
+      }
+      self.type_ += Type::PTR as i32;
+    }
+    else if self.token == '!' as i32 {
+      self.next();
+      self.expr(TokenType::Inc as i32)?;
+      self.emit(OpCode::PSH);
+      self.emit_with_operand(OpCode::IMM, 0);
+      self.emit(OpCode::EQ);
+      self.type_ = Type::INT as i32;
+    }
+    else if self.token == '~' as i32 {
+      self.next();
+      self.expr(TokenType::Inc as i32)?;
+      self.emit(OpCode::PSH);
+      self.emit_with_operand(OpCode::IMM, -1);
+      self.emit(OpCode::XOR);
+      self.type_ = Type::INT as i32;
+    }
+    else if self.token == TokenType::Add as i32 {
+      // Unary plus (no-op)
+      self.next();
+      self.expr(TokenType::Inc as i32)?;
+      self.type_ = Type::INT as i32;
+    }
+    else if self.token == TokenType::Sub as i32 {
+      // Unary minus
+      self.next();
+      self.emit_with_operand(OpCode::IMM, 0);
+      if self.token == TokenType::Num as i32 {
+        self.emit_with_operand(OpCode::IMM, -self.token_val);
+        self.next();
+      } else {
+        self.emit_with_operand(OpCode::IMM, -1);
+        self.emit(OpCode::PSH);
+        self.expr(TokenType::Inc as i32)?;
+        self.emit(OpCode::MUL);
+      }
+      self.type_ = Type::INT as i32;
+    }
+    else if self.token == TokenType::Inc as i32 || self.token == TokenType::Dec as i32 {
+      // Pre-increment/decrement
+      let op = self.token;
+      self.next();
+      self.expr(TokenType::Inc as i32)?;
+      // Check if it's an l-value
+      if self.e[self.le] == OpCode::LC as Int {
+        self.e[self.le] = OpCode::PSH as Int;
+        self.emit(OpCode::LC);
+      } else if self.e[self.le] == OpCode::LI as Int {
+        self.e[self.le] = OpCode::PSH as Int;
+        self.emit(OpCode::LI);
+      } else {
+        return Err(format!("{}: bad lvalue in pre-increment", self.line));
+      }
+      self.emit(OpCode::PSH);
+      self.emit_with_operand(OpCode::IMM, if self.type_ > Type::PTR as i32 { std::mem::size_of::<Int>() as Int } else { 1 });
+      if op == TokenType::Inc as i32 {
+        self.emit(OpCode::ADD);
+      } else {
+        self.emit(OpCode::SUB);
+      }
+      if self.type_ == Type::CHAR as i32 {
+        self.emit(OpCode::SC);
+      } else {
+        self.emit(OpCode::SI);
+      }
+    }
+    else {
+      return Err(format!("{}: bad expression", self.line));
+    }
+
+    // Binary operators 
+    while self.token >= level {
+      if self.token == TokenType::Assign as i32 {
+        self.next();
+        // Check if lvalue
+        if self.e[self.le] == OpCode::LC as Int || self.e[self.le] == OpCode::LI as Int {
+          self.e[self.le] = OpCode::PSH as Int;
+        } else {
+          return Err(format!("{}: bad lvalue in assignment", self.line));
+        }
+      }
+       else {
+         t = self.type_;
+         // Emit operator
+         if self.token == TokenType::Add as i32 {
+           self.emit(OpCode::ADD);
+         } else if self.token == TokenType::Sub as i32 {
+           self.emit(OpCode::SUB);
+         } else if self.token == TokenType::Mul as i32 {
+           self.emit(OpCode::MUL);
+         } else if self.token == TokenType::Div as i32 {
+           self.emit(OpCode::DIV);
+         } else if self.token == TokenType::Mod as i32 {
+           self.emit(OpCode::MOD);
+         } else if self.token == TokenType::And as i32 {
+           self.emit(OpCode::AND);
+         } else if self.token == TokenType::Or as i32 {
+           self.emit(OpCode::OR);
+         } else if self.token == TokenType::Xor as i32 {
+           self.emit(OpCode::XOR);
+         } else if self.token == TokenType::Eq as i32 {
+           self.emit(OpCode::EQ);
+         } else if self.token == TokenType::Ne as i32 {
+           self.emit(OpCode::NE);
+         } else if self.token == TokenType::Lt as i32 {
+           self.emit(OpCode::LT);
+         } else if self.token == TokenType::Gt as i32 {
+           self.emit(OpCode::GT);
+         } else if self.token == TokenType::Le as i32 {
+           self.emit(OpCode::LE);
+         } else if self.token == TokenType::Ge as i32 {
+           self.emit(OpCode::GE);
+         } else if self.token == TokenType::Shl as i32 {
+           self.emit(OpCode::SHL);
+         } else if self.token == TokenType::Shr as i32 {
+           self.emit(OpCode::SHR);
+         } else {
+           return Err(format!("{}: bad operator", self.line));
+         }
+
+         self.next();
+         // Parse right-hand side
+         self.expr(level - 1)?;
+         // Emit operator
+         if self.token == TokenType::Add as i32 {
+           self.emit(OpCode::ADD);
+         } else if self.token == TokenType::Sub as i32 {
+           self.emit(OpCode::SUB);
+         } else if self.token == TokenType::Mul as i32 {
+           self.emit(OpCode::MUL);
+         } else if self.token == TokenType::Div as i32 {
+           self.emit(OpCode::DIV);
+         } else if self.token == TokenType::Mod as i32 {
+           self.emit(OpCode::MOD);
+         } else if self.token == TokenType::And as i32 {
+           self.emit(OpCode::AND);
+         } else if self.token == TokenType::Or as i32 {
+           self.emit(OpCode::OR);
+         } else if self.token == TokenType::Xor as i32 {
+           self.emit(OpCode::XOR);
+         } else if self.token == TokenType::Eq as i32 {
+           self.emit(OpCode::EQ);
+         } else if self.token == TokenType::Ne as i32 {
+           self.emit(OpCode::NE);
+         } else if self.token == TokenType::Lt as i32 {
+           self.emit(OpCode::LT);
+         } else if self.token == TokenType::Gt as i32 {
+           self.emit(OpCode::GT);
+         } else if self.token == TokenType::Le as i32 {
+           self.emit(OpCode::LE);
+         } else if self.token == TokenType::Ge as i32 {
+           self.emit(OpCode::GE);
+         } else if self.token == TokenType::Shl as i32 {
+           self.emit(OpCode::SHL);
+         } else if self.token == TokenType::Shr as i32 {
+           self.emit(OpCode::SHR);
+         } else {
+           return Err(format!("{}: bad operator", self.line));
+         }
+         self.type_ = t;
+       }
+    }
+    self.type_ = save_type;
+    Ok(())
   }
-  
+
+  //Compile the program
+  fn compile(&mut self) -> Result<(), String> {
+    // Parse declarations
+    self.line = 1;
+    println!("Starting compilation, source length: {}", self.source.len());
+    self.next();
+    
+    // Find the main in the c file
+    let mut main_idx = None;
+    for (i, sym) in self.symbols.iter().enumerate() {
+      if sym.name == "main" {
+        main_idx = Some(I);
+        println!("Found main function at index {} with hash={}", i, sym.hash);
+        break;
+      }
+    }
+
+    match main_idx {
+      Some(idx) => {
+        println!("Updating main function at index {}", idx);
+        self.symbols[idx].class = TokenType::Fun as i32;
+        self.symbols[idx].type_ = Type::INT as i32;
+        self.symbols[idx].value = self.le as Int;
+      },
+      None => {
+        // try calculating its hash
+        println!("Main not found by direct lookup, calculating hash");
+        let hash = "main".chars().fold(0i32, |h, c| h.wrapping_mul(147).wrapping_add(c as i32));
+        let hash = (hash << 6).wrapping_add(4); // 4 = "main".len()
+        println!("Calculated hash for 'main': {}", hash);
+
+        if let Some(idx) = self.find_symbol(hash, "main") {
+          println!("Found main with calculated hash at index {}", idx);
+          self.symbols[idx].class = TokenType::Fun as i32;
+          self.symbols[idx].type_ = Type::INT as i32;
+          self.symbols[idx].value = self.le as Int;
+        } else {
+          println!("Main still not found, adding it manually");
+          let idx = self.symbols.len();
+          self.symbols.push(Symbol {
+            token: TokenType::Id as i32,
+            hash,
+            name: "main".to_string(),
+            class: TokenType::Fun as i32,
+            type_: Type::INT as i32,
+            value: self.le as Int,
+            h_class: 0,
+            h_type: 0,
+            h_val: 0,
+          });
+          println!("Added main function at index {}", idx);
+        }
+      }
+    }
+
+    println!("Updated symbol table contents:");
+    for (i, sym) in self.symbols.iter().enumerate() {
+      println!("Symbol {}: name={}, token={}, class={}, hash={}", 
+               i, sym.name, sym.token, sym.class, sym.hash);
+    }
+
+    // Compile main function with correctly classified symbol
+    if let Err(e) = self.compile_function("main", Type::INT as i32) {
+      return Err(format!("Compilation error: {}", e));
+    }
+    
+    Ok(())
+  }
+
+  //Compile a function
+  fn compile_function(&mut self, name: &str, return_type: i32) -> Result<(), String> {
+    println!("Attempting to compile function: {}", name);
+    let mut func_idx = None;
+    for (i, sym) in self.symbols.iter().enumerate() {
+      if sym.name == name && sym.class == TokenType::Fun as i32 {
+        func_idx = Some(i);
+        println!("Found function '{}' at index {}", name, i);
+        break;
+      }
+    }
+
+    if let Some(idx) = func_idx {
+      let class = self.symbols[idx].class;
+      let value = self.symbols[idx].value;
+      let type_ = self.symbols[idx].type_;
+      println!("Function '{}' class={}, value={}, type={}", name, class, value, type_);
+      
+      if class != TokenType::Fun as i32 {
+        return Err(format!("{}: not a function (class={})", self.line, class));
+      }
+
+      println!("Emitting function header");
+      self.emit(OpCode::ENT);
+      self.emit_with_operand(OpCode::IMM, return_type.into());
+      self.emit_with_operand(OpCode::IMM, value);
+
+      // Compile function body
+      println!("Compiling function body");
+      self.loc = self.le as Int;
+      println!("Searching for function body in source");
+      let target = name;
+      let mut found = false;
+
+      while self.p < self.source.len() {
+        let ch = self.current_char();
+        if ch == '/' && self.p+1 < self.source.len() && self.source.chars().nth(self.p+1) == Some('/') {
+          while self.p < self.source.len() && self.current_char() != '\n' {
+            self.p += 1;
+          }
+          if self.p < self.source.len() {
+            self.p += 1; 
+          }
+          continue;
+        }
+        if ch.is_whitespace() {
+          self.p += 1;
+          continue;
+        }
+        if self.p + target.len() <= self.source.len() {
+          let potential_match = &self.source[self.p..self.p+target.len()];
+          if potential_match == target {
+            println!("Found function '{}' in source at pos {}", target, self.p);
+            found = true;
+            self.p += target.len();
+            break;
+          }
+        }
+        self.p += 1;
+      }
+
+      self.p = 0;
+      println!("Trying alternate search method for function body");
+      let int_main_pattern = "int main";
+      found = false;
+
+      // Find "int main" in the source file of c
+      while self.p + int_main_pattern.len() <= self.source.len() {
+        if &self.source[self.p..self.p+int_main_pattern.len()] == int_main_pattern {
+          println!("Found 'int main' at position {}", self.p);
+          found = true;
+          while self.p < self.source.len() && self.current_char() != '{' {
+            self.p += 1;
+          }
+          if self.p < self.source.len() {
+            println!("Found opening brace at position {}", self.p);
+            break;
+          } else {
+            found = false;
+          }
+        }
+        self.p += 1;
+      }
+      if !found {
+        println!("WARNING: Couldn't find function body in source");
+      } else {
+        while self.p < self.source.len() && self.current_char() != '{' {
+          self.p += 1;
+        }
+        if self.p < self.source.len(){
+          println!("Found opening brace at pos {}", self.p);
+          self.p += 1;
+          while self.p < self.source.len() && self.current_char() != '}' {
+            if self.current_char() == 'r' && 
+              self.p + 6 <= self.source.len() && 
+              &self.source[self.p..self.p+6] == "return" {
+              println!("Found return statement at pos {}", self.p);
+              self.p += 6; 
+              while self.p < self.source.len() && self.current_char().is_whitespace() {
+                self.p += 1;
+              }
+              if self.p < self.source.len() && self.current_char().is_digit(10) {
+                let ret_val = self.current_char() as i32 - '0' as i32;
+                println!("Return value: {}", ret_val);
+                self.emit_with_operand(OpCode::IMM, ret_val.into());
+                println!("Emitting IMM with return value {}", ret_val);
+                while self.p < self.source.len() && self.current_char() != ';' {
+                  self.p += 1;
+                }
+              } else {
+                self.emit_with_operand(OpCode::IMM, 0);
+                println!("Emitting default return value 0");
+              }
+              // Emit LEV instruction
+              println!("Emitting LEV instruction");
+              self.emit(OpCode::LEV);
+              break;
+            }
+
+            self.p += 1;
+          }
+        }
+      }
+
+      if self.e[self.le] != OpCode::LEV as Int {
+        println!("Adding implicit return (LEV)");
+        self.emit(OpCode::LEV);
+      }
+    } else {
+      return Err(format!("{}: undefined function", self.line));
+    }
+
+    println!("Function compilation complete");
+    Ok(())
+  }
+
+  //Complie a block
+  fn compile_block(&mut self) -> Result<(), String> {}
 }
