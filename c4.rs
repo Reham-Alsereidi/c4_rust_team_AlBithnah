@@ -202,7 +202,7 @@ impl C4 {
     });
   }
 
-  fn add_syscall(&mut self, name: &str, token: i32) {
+  fn add_syscall(&mut self, name: &str, code: i32) {
     let mut hash: i32 = 0;
 
     for c in name.chars() {
@@ -404,5 +404,134 @@ impl C4 {
     }
     
     // Handle operators and other tokens
+    match ch {
+      '/' => {
+        self.p += 1;
+        if self.current_char() == '/' {
+          // Line comment
+          self.p += 1;
+          while self.p < self.source.len() && self.current_char() != '\n' {
+            self.p += 1;
+          }
+          self.next(); 
+          return;
+        }
+        self.token = TokenType::Div as i32;
+      },
+      '=' => {
+        self.p += 1;
+        if self.current_char() == '=' {
+          self.p += 1;
+          self.token = TokenType::Eq as i32;
+        } else {
+          self.token = TokenType::Assign as i32;
+        }
+      },
+      '+' => {
+        self.p += 1;
+        if self.current_char() == '+' {
+          self.p += 1;
+          self.token = TokenType::Inc as i32;
+        } else {
+          self.token = TokenType::Add as i32;
+        }
+      },
+      '-' => {
+        self.p += 1;
+        if self.current_char() == '-' {
+          self.p += 1;
+          self.token = TokenType::Dec as i32;
+        } else {
+          self.token = TokenType::Sub as i32;
+        }
+      },
+      '!' => {
+        self.p += 1;
+        if self.current_char() == '=' {
+          self.p += 1;
+          self.token = TokenType::Ne as i32;
+        } else {
+          self.token = '!' as i32;
+        }
+      },
+      '<' => {
+        self.p += 1;
+        if self.current_char() == '=' {
+          self.p += 1;
+          self.token = TokenType::Le as i32;
+        } else if self.current_char() == '<' {
+          self.p += 1;
+          self.token = TokenType::Shl as i32;
+        } else {
+          self.token = TokenType::Lt as i32;
+        }
+      },
+      '>' => {
+        self.p += 1;
+        if self.current_char() == '=' {
+          self.p += 1;
+          self.token = TokenType::Ge as i32;
+        } else if self.current_char() == '>' {
+          self.p += 1;
+          self.token = TokenType::Shr as i32;
+        } else {
+          self.token = TokenType::Gt as i32;
+        }
+      },
+      '|' => {
+        self.p += 1;
+        if self.current_char() == '|' {
+          self.p += 1;
+          self.token = TokenType::Lor as i32;
+        } else {
+          self.token = TokenType::Or as i32;
+        }
+      },
+      '&' => {
+        self.p += 1;
+        if self.current_char() == '&' {
+          self.p += 1;
+          self.token = TokenType::Lan as i32;
+        } else {
+          self.token = TokenType::And as i32;
+        }
+      },
+      '^' => {
+        self.p += 1;
+        self.token = TokenType::Xor as i32;
+      },
+      '%' => {
+        self.p += 1;
+        self.token = TokenType::Mod as i32;
+      },
+      '*' => {
+        self.p += 1;
+        self.token = TokenType::Mul as i32;
+      },
+      '[' => {
+        self.p += 1;
+        self.token = TokenType::Brak as i32;
+      },
+      '?' => {
+        self.p += 1;
+        self.token = TokenType::Cond as i32;
+      },
+      '#' => {
+        self.p += 1;
+        while self.p < self.source.len() && self.current_char() != '\n' {
+          self.p += 1;
+        }
+        self.next(); // next token
+        return;
+      },
+      '~' | ';' | '{' | '}' | '(' | ')' | ']' | ',' | ':' => {
+        self.token = ch as i32;
+        self.p += 1;
+      },
+      _ => {
+        self.token = ch as i32;
+        self.p += 1;
+      }
+    }
   }
 }
