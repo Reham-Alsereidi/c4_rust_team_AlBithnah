@@ -305,7 +305,7 @@ impl C4 {
         self.token = TokenType::Id as i32;
       }
       
-      println!("Parsed identifier: '{}', token = {}, id={}", name, self.token, self.id");
+      println!("Parsed identifier: '{}', token = {}, id={}", name, self.token, self.id);
       return;
     }
     
@@ -404,5 +404,5 @@ impl C4 {
     }
     
     // Handle operators and other tokens
-    }
+  }
 }
