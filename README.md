@@ -12,27 +12,18 @@ c4_rust is a port of the original c4 C compiler to Rust. It follows the same pri
 ## Requirements
 
 - Rust compiler (rustc) and Cargo
-- If you don't have Rust installed, visit [rust-lang.org](https://www.rust-lang.org/tools/install) to install it
 - For Windows users: You'll need MSYS2 or MinGW for libc compatibility
 
 ## Building the project
-
-### Linux/macOS
-```bash
-cd c4_rust
-cargo build --release
-```
-
 ### Windows
 ```powershell
 cd c4_rust
 cargo build --release
 ```
 
-Note: On Windows, you need to ensure you have the appropriate MSYS2/MinGW environment set up for libc support.
+Note: On Windows, you must ensure you have the appropriate MSYS2/MinGW environment set up for libc support.
 
 The compiled binary will be available at:
-- Linux/macOS: `target/release/c4_rust`
 - Windows: `target\release\c4_rust.exe`
 
 ## Usage
@@ -115,7 +106,3 @@ The same limitations as the original c4 apply:
 ## License
 
 This project is available under the same license as the original c4 project.
-
-## Acknowledgments
-
-Based on the original c4 compiler by Robert Swierczek.
