@@ -37,7 +37,7 @@ enum TokenType {
   Shl,
   Shr,
   Add,
-  Sub,
+  Sub, 
   Mul,
   Div,
   Mod,
