@@ -1,0 +1,85 @@
+Source file content:
+int main() {
+    printf("Hello, World!\n");
+    return 0;
+}
+
+
+End of source
+Next token starts with character: 'i' at position 0
+Parsed identifier: 'int', token=138, id=4
+Starting compilation, source length: 66
+Next token starts with character: 'm' at position 4
+Parsed identifier: 'main', token=133, id=18
+Found main function at index 18 with hash=819731524
+Updating main function at index 18
+Updated symbol table contents:
+Symbol 0: name=char, token=134, class=0, hash=-1203637372
+Symbol 1: name=else, token=135, class=0, hash=-791342012
+Symbol 2: name=enum, token=136, class=0, hash=-788556732
+Symbol 3: name=if, token=137, class=0, hash=994370
+Symbol 4: name=int, token=138, class=0, hash=146254787
+Symbol 5: name=return, token=139, class=0, hash=-822207994
+Symbol 6: name=sizeof, token=140, class=0, hash=-1041221626
+Symbol 7: name=while, token=141, class=0, hash=-135907771
+Symbol 8: name=open, token=133, class=130, hash=1247033476
+Symbol 9: name=read, token=133, class=130, hash=1841674884
+Symbol 10: name=close, token=133, class=130, hash=-8467707
+Symbol 11: name=printf, token=133, class=130, hash=279212358
+Symbol 12: name=malloc, token=133, class=130, hash=1741464070
+Symbol 13: name=free, token=133, class=130, hash=-579878396
+Symbol 14: name=memset, token=133, class=130, hash=1234178630
+Symbol 15: name=memcmp, token=133, class=130, hash=1212126022
+Symbol 16: name=exit, token=133, class=130, hash=-774839420
+Symbol 17: name=void, token=134, class=0, hash=-1626197500
+Symbol 18: name=main, token=133, class=129, hash=819731524
+Attempting to compile function: main
+Found function 'main' at index 18
+Function 'main' class=129, value=0, type=1
+Emitting function header
+Compiling function body
+Searching for function body in source
+Trying alternate search method for function body
+Found 'int main' at position 0
+Found opening brace at position 11
+Found opening brace at pos 11
+Found return statement at pos 50
+Return value: 0
+Emitting IMM with return value 0
+Emitting LEV instruction
+Function compilation complete
+find_main: Found main at index 18
+Found main index at 18, ready to run
+Running main function at index 18
+Running with simplified implementation
+Successfully compiled function 'main'
+Running function 'main' with return value 0
+exit(0) cycle = 0
+asma62730@DESKTOP-IJEGNI8:/mnt/c/Users/100062730/Documents/Spring-25/principles/c4_rust/src$ cargo doc --no-deps
+    Updating crates.io index
+  Downloaded libc v0.2.172
+  Downloaded 1 crate (791.6 KB) in 0.81s
+   Compiling libc v0.2.172
+ Documenting c4_rust v0.1.0 (/mnt/c/Users/100062730/Documents/Spring-25/principles/c4_rust)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.95s
+   Generated /mnt/c/Users/100062730/Documents/Spring-25/principles/c4_rust/target/doc/c4_rust/index.html
+asma62730@DESKTOP-IJEGNI8:/mnt/c/Users/100062730/Documents/Spring-25/principles/c4_rust/src$ cargo run --/test.c
+error: unexpected argument '--/test.c' found
+
+  tip: to pass '--/test.c' as a value, use '-- --/test.c'
+
+Usage: cargo run [OPTIONS] [ARGS]...
+
+For more information, try '--help'.
+Found return statement at pos 50
+Return value: 0
+Emitting IMM with return value 0
+Emitting LEV instruction
+Function compilation complete
+find_main: Found main at index 18
+Found main index at 18, ready to run
+Running main function at index 18
+Running with simplified implementation
+Successfully compiled function 'main'
+Running function 'main' with return value 0
+exit(0) cycle = 0
