@@ -46,7 +46,7 @@ enum TokenType {
   Brak,
 }
 
-//VM instruction opcodes
+//VM instruction opcodes 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(dead_code)]
 enum OpCode {
