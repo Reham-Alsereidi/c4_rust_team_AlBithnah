@@ -540,7 +540,7 @@ impl C4 {
     self.le += 1;
     self.e[self.le] = op as Int;
   }
-
+ 
   // Emit an instruction with an operand
   fn emit_with_operand(&mut self, op: OpCode, operand: Int) {
     self.emit(op);
@@ -556,28 +556,28 @@ impl C4 {
     
     if self.token == 0 {
       return Err(format!("{}: unexpected end of file in expression", self.line));
-    }
+    } 
 
     // Parse primary expressions
     if self.token == TokenType::Num as i32 {
       self.emit_with_operand(OpCode::IMM, self.token_val);
       self.next();
       self.type_ = Type::INT as i32;
-    }
+    } 
     else if self.token == '"' as i32 {
       self.emit_with_operand(OpCode::IMM, self.token_val);
       self.next();
       while self.token == '"' as i32 {
         self.next();
-      }
+      } 
       self.data_index = (self.data_index + std::mem::size_of::<Int>() - 1) & !(std::mem::size_of::<Int>() - 1);
       self.type_ = Type::PTR as i32;
-    }
+    } 
     else if self.token == TokenType::Sizeof as i32 {
       self.next();
       if self.token == '(' as i32 {
         self.next();
-      } else {
+      } else { 
         return Err(format!("{}: open paren expected in sizeof", self.line));
       }
       self.type_ = Type::INT as i32;
@@ -595,11 +595,11 @@ impl C4 {
         self.next();
       } else {
         return Err(format!("{}: close paren expected in sizeof", self.line));
-      }
+      } 
       let size_val = if self.type_ == Type::CHAR as i32 { 1 } else { std::mem::size_of::<Int>() as Int };
       self.emit_with_operand(OpCode::IMM, size_val);
       self.type_ = Type::INT as i32;
-    }
+    } 
     else if self.token == TokenType::Id as i32 {
       let id_idx = self.id;
       self.next();
@@ -623,18 +623,18 @@ impl C4 {
           self.emit_with_operand(OpCode::IMM, value);
         } else if class == TokenType::Fun as i32 {
           self.emit_with_operand(OpCode::JSR, value);
-        } else {
+        } else { 
           return Err(format!("{}: bad function call", self.line));
-        }
+        } 
         if arg_count > 0 {
           self.emit_with_operand(OpCode::ADJ, arg_count);
-        }
+        } 
         self.type_ = type_;
-      }
+      } 
       else if self.symbols[id_idx].class == TokenType::Num as i32 {
         self.emit_with_operand(OpCode::IMM, self.symbols[id_idx].value);
         self.type_ = Type::INT as i32;
-      }
+      } 
       else {
         let class = self.symbols[id_idx].class;
         let value = self.symbols[id_idx].value;
@@ -653,7 +653,7 @@ impl C4 {
         } else {
           self.emit(OpCode::LI);
         }
-      }
+      } 
     }
     else if self.token == '(' as i32 {
       self.next();
