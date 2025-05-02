@@ -1082,5 +1082,46 @@ impl C4 {
   }
 
   //Complie a block
-  fn compile_block(&mut self) -> Result<(), String> {}
+  fn compile_block(&mut self) -> Result<(), String> {
+      println!("Compiling block, current token: {}", self.token);
+        
+        if self.token == '{' as i32 {
+            println!("Found opening brace, skipping");
+            self.next();
+        }
+        
+        while self.token != '}' as i32 && self.token != 0 {
+            println!("Block statement token: {}", self.token);
+            
+            if self.token == TokenType::Return as i32 {
+                println!("Found return statement");
+                self.next(); 
+                
+                if self.token != ';' as i32 {
+                    println!("Parsing return expression");
+                    if let Err(e) = self.expr(TokenType::Assign as i32) {
+                        return Err(format!("Error in return expression: {}", e));
+                    }
+                }
+                
+              
+                if self.token == ';' as i32 {
+                    println!("Skipping semicolon");
+                    self.next();
+                }
+                
+                println!("Emitting return instruction (LEV)");
+                self.emit(OpCode::LEV);
+            } else {
+                println!("Skipping unknown statement");
+                self.next();
+            }
+        }
+        
+        if self.token == '}' as i32 {
+            println!("Found closing brace, skipping");
+            self.next();
+        }
+        
+        Ok(())
 }
