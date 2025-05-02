@@ -487,7 +487,7 @@ impl C4 {
           self.token = TokenType::Or as i32;
         }
       },
-      '&' => {
+      '&' => { 
         self.p += 1;
         if self.current_char() == '&' {
           self.p += 1;
@@ -495,7 +495,7 @@ impl C4 {
         } else {
           self.token = TokenType::And as i32;
         }
-      },
+      }, 
       '^' => {
         self.p += 1;
         self.token = TokenType::Xor as i32;
@@ -531,7 +531,7 @@ impl C4 {
       _ => {
         self.token = ch as i32;
         self.p += 1;
-      }
+      } 
     }
   }
 
@@ -613,7 +613,7 @@ impl C4 {
           if self.token == ',' as i32 {
             self.next();
           }
-        }
+        } 
         self.next();
         let sym = &self.symbols[id_idx];
         let class = sym.class;
@@ -668,7 +668,7 @@ impl C4 {
         while self.token == TokenType::Mul as i32 {
           self.next();
           t += Type::PTR as i32;
-        } 
+        }  
         if self.token == ')' as i32 {
           self.next();
         } else {
@@ -718,7 +718,7 @@ impl C4 {
       self.emit_with_operand(OpCode::IMM, 0);
       self.emit(OpCode::EQ);
       self.type_ = Type::INT as i32;
-    } 
+    }  
     else if self.token == '~' as i32 {
       self.next();
       self.expr(TokenType::Inc as i32)?;
@@ -762,7 +762,7 @@ impl C4 {
         self.emit(OpCode::LI);
       } else {
         return Err(format!("{}: bad lvalue in pre-increment", self.line));
-      }
+      } 
       self.emit(OpCode::PSH);
       self.emit_with_operand(OpCode::IMM, if self.type_ > Type::PTR as i32 { std::mem::size_of::<Int>() as Int } else { 1 });
       if op == TokenType::Inc as i32 {
