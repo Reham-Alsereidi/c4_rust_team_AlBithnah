@@ -1027,8 +1027,8 @@ impl C4 {
           }
         }
         self.p += 1;
-      }
-      if !found {
+      }  
+      if !found { 
         println!("WARNING: Couldn't find function body in source");
       } else {
         while self.p < self.source.len() && self.current_char() != '{' {
