@@ -1065,9 +1065,9 @@ impl C4 {
             }
 
             self.p += 1;
-          } 
+          }  
         }
-      }
+      } 
 
       if self.e[self.le] != OpCode::LEV as Int {
         println!("Adding implicit return (LEV)");
