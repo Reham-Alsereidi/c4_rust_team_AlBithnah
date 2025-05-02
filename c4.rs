@@ -668,24 +668,24 @@ impl C4 {
         while self.token == TokenType::Mul as i32 {
           self.next();
           t += Type::PTR as i32;
-        }
+        } 
         if self.token == ')' as i32 {
           self.next();
         } else {
           return Err(format!("{}: bad cast", self.line));
-        }
+        } 
         self.expr(TokenType::Inc as i32)?;
         self.type_ = t;
-      }
-      else {
+      } 
+      else { 
         self.expr(TokenType::Assign as i32)?;
         if self.token == ')' as i32 {
           self.next();
-        } else {
+        } else { 
           return Err(format!("{}: close paren expected", self.line));
         }
-      }
-    }
+      } 
+    } 
     else if self.token == TokenType::Mul as i32 {
       self.next();
       self.expr(TokenType::Inc as i32)?;
@@ -698,17 +698,17 @@ impl C4 {
         self.emit(OpCode::LC);
       } else {
         self.emit(OpCode::LI);
-      }
-    }
+      } 
+    } 
     else if self.token == TokenType::And as i32 {
       self.next();
       self.expr(TokenType::Inc as i32)?;
       // If it's already a load, just remove it
       if self.e[self.le] == OpCode::LC as Int || self.e[self.le] == OpCode::LI as Int {
         self.le -= 1;
-      } else {
+      } else { 
         return Err(format!("{}: bad address-of", self.line));
-      }
+      } 
       self.type_ += Type::PTR as i32;
     }
     else if self.token == '!' as i32 {
@@ -718,7 +718,7 @@ impl C4 {
       self.emit_with_operand(OpCode::IMM, 0);
       self.emit(OpCode::EQ);
       self.type_ = Type::INT as i32;
-    }
+    } 
     else if self.token == '~' as i32 {
       self.next();
       self.expr(TokenType::Inc as i32)?;
@@ -732,7 +732,7 @@ impl C4 {
       self.next();
       self.expr(TokenType::Inc as i32)?;
       self.type_ = Type::INT as i32;
-    }
+    } 
     else if self.token == TokenType::Sub as i32 {
       // Unary minus
       self.next();
@@ -747,7 +747,7 @@ impl C4 {
         self.emit(OpCode::MUL);
       }
       self.type_ = Type::INT as i32;
-    }
+    } 
     else if self.token == TokenType::Inc as i32 || self.token == TokenType::Dec as i32 {
       // Pre-increment/decrement
       let op = self.token;
@@ -769,16 +769,16 @@ impl C4 {
         self.emit(OpCode::ADD);
       } else {
         self.emit(OpCode::SUB);
-      }
+      } 
       if self.type_ == Type::CHAR as i32 {
         self.emit(OpCode::SC);
-      } else {
+      } else { 
         self.emit(OpCode::SI);
-      }
-    }
-    else {
+      } 
+    } 
+    else { 
       return Err(format!("{}: bad expression", self.line));
-    }
+    } 
 
     // Binary operators 
     while self.token >= level {
@@ -787,10 +787,10 @@ impl C4 {
         // Check if lvalue
         if self.e[self.le] == OpCode::LC as Int || self.e[self.le] == OpCode::LI as Int {
           self.e[self.le] = OpCode::PSH as Int;
-        } else {
+        } else { 
           return Err(format!("{}: bad lvalue in assignment", self.line));
-        }
-      }
+        } 
+      } 
        else {
          t = self.type_;
          // Emit operator
@@ -828,7 +828,7 @@ impl C4 {
            self.emit(OpCode::SHR);
          } else {
            return Err(format!("{}: bad operator", self.line));
-         }
+         } 
 
          self.next();
          // Parse right-hand side
@@ -890,8 +890,8 @@ impl C4 {
         main_idx = Some(I);
         println!("Found main function at index {} with hash={}", i, sym.hash);
         break;
-      }
-    }
+      } 
+    } 
 
     match main_idx {
       Some(idx) => {
@@ -900,7 +900,7 @@ impl C4 {
         self.symbols[idx].type_ = Type::INT as i32;
         self.symbols[idx].value = self.le as Int;
       },
-      None => {
+      None => { 
         // try calculating its hash
         println!("Main not found by direct lookup, calculating hash");
         let hash = "main".chars().fold(0i32, |h, c| h.wrapping_mul(147).wrapping_add(c as i32));
@@ -925,11 +925,11 @@ impl C4 {
             h_class: 0,
             h_type: 0,
             h_val: 0,
-          });
+          }); 
           println!("Added main function at index {}", idx);
         }
       }
-    }
+    } 
 
     println!("Updated symbol table contents:");
     for (i, sym) in self.symbols.iter().enumerate() {
@@ -954,7 +954,7 @@ impl C4 {
         func_idx = Some(i);
         println!("Found function '{}' at index {}", name, i);
         break;
-      }
+      } 
     }
 
     if let Some(idx) = func_idx {
@@ -965,7 +965,7 @@ impl C4 {
       
       if class != TokenType::Fun as i32 {
         return Err(format!("{}: not a function (class={})", self.line, class));
-      }
+      } 
 
       println!("Emitting function header");
       self.emit(OpCode::ENT);
@@ -984,7 +984,7 @@ impl C4 {
         if ch == '/' && self.p+1 < self.source.len() && self.source.chars().nth(self.p+1) == Some('/') {
           while self.p < self.source.len() && self.current_char() != '\n' {
             self.p += 1;
-          }
+          } 
           if self.p < self.source.len() {
             self.p += 1; 
           }
@@ -1001,7 +1001,7 @@ impl C4 {
             found = true;
             self.p += target.len();
             break;
-          }
+          } 
         }
         self.p += 1;
       }
@@ -1018,7 +1018,7 @@ impl C4 {
           found = true;
           while self.p < self.source.len() && self.current_char() != '{' {
             self.p += 1;
-          }
+          } 
           if self.p < self.source.len() {
             println!("Found opening brace at position {}", self.p);
             break;
@@ -1033,7 +1033,7 @@ impl C4 {
       } else {
         while self.p < self.source.len() && self.current_char() != '{' {
           self.p += 1;
-        }
+        } 
         if self.p < self.source.len(){
           println!("Found opening brace at pos {}", self.p);
           self.p += 1;
@@ -1045,7 +1045,7 @@ impl C4 {
               self.p += 6; 
               while self.p < self.source.len() && self.current_char().is_whitespace() {
                 self.p += 1;
-              }
+              } 
               if self.p < self.source.len() && self.current_char().is_digit(10) {
                 let ret_val = self.current_char() as i32 - '0' as i32;
                 println!("Return value: {}", ret_val);
@@ -1065,7 +1065,7 @@ impl C4 {
             }
 
             self.p += 1;
-          }
+          } 
         }
       }
 
