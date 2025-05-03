@@ -68,6 +68,11 @@ OR
 ```
 ./c4_rust c4.c
 ```
+5. For Unit Test. The test file compiler_tests.rs in tests folder:
+run this command for unit testing
+```
+cargo test
+```
 
 
 ## Project Structure
