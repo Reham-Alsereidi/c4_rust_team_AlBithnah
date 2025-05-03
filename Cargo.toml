@@ -1,0 +1,17 @@
+[package]
+name = "c4_rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["Team AlBithnah"]
+repository = "https://github.com/Reham-Alsereidi/c4_rust_team_AlBithnah.git"
+description = "A C compiler in four functions (Rust port)"
+
+[dependencies]
+
+[[bin]]
+name = "c4_rust"
+path = "src/main.rs"
+
+[lib]
+name = "c4_rust"
+path = "src/main.rs" 
